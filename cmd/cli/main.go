@@ -67,9 +67,19 @@ func main() {
 	fmt.Println("===================== Get IB Data =======================")
 	ibData := lqd.GetIBReportData(*from, *to)
 	//fmt.Println(ibData)
-	fmt.Println("=============================================")
+	fmt.Println("====================== Generate report =======================")
+
+	fileName := time.Now().Format("20060102150405")
+	repFile, err := os.Create(fmt.Sprintf("generated/%s.txt", fileName))
+	if err != nil {
+		log.Fatalf("creating new file: %s", err)
+	}
+	defer repFile.Close()
 
 	fmt.Println("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions")
+
+	header := fmt.Sprintf("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions\n")
+	repFile.Write([]byte(header))
 
 	for key, lqd := range ibData {
 		replicaData := IBAggregate{}
@@ -106,6 +116,11 @@ func main() {
 			res.IBID, res.Equity, res.DepositsTotal,
 			res.WithdrawalsTotal, res.Volume,
 			res.OpenProfit, res.ClosedProfit, res.Commissions)
+		row := fmt.Sprintf("%d\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\n",
+			res.IBID, res.Equity, res.DepositsTotal,
+			res.WithdrawalsTotal, res.Volume,
+			res.OpenProfit, res.ClosedProfit, res.Commissions)
+		repFile.Write([]byte(row))
 	}
 
 }
