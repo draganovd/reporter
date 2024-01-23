@@ -26,9 +26,9 @@ WHERE CLOSE_TIME BETWEEN '<startDate>' AND '<endDate>'
 GROUP BY LOGIN;
 
 SELECT v.trading_account AS trading_account,
-				v.volume AS volume,
-	IF(op.open_profit IS NULL, 0.0, op.open_profit) AS open_profit,
-	IF(cp.closed_profit IS NULL, 0.0, cp.closed_profit) AS closed_profit
+	ROUND(v.volume, 2) AS volume,
+	ROUND(IF(op.open_profit IS NULL, 0.0, op.open_profit), 2) AS open_profit,
+	ROUND(IF(cp.closed_profit IS NULL, 0.0, cp.closed_profit), 2) AS closed_profit
 FROM ib_volume AS v
 LEFT JOIN ib_open_profit AS op ON op.trading_account = v.trading_account
 LEFT JOIN ib_closed_profit AS cp ON cp.trading_account = v.trading_account;
@@ -64,9 +64,9 @@ WHERE CLOSE_TIME BETWEEN '<startDate>' AND '<endDate>'
 GROUP BY LOGIN;
       
 SELECT v.trading_account AS trading_account,
-				v.volume AS volume,
-		 IF(op.open_profit IS NULL, 0.0, op.open_profit) AS open_profit,
-		IF(cp.closed_profit IS NULL, 0.0, cp.closed_profit) AS closed_profit
+		ROUND(v.volume, 2) AS volume,
+		ROUND(IF(op.open_profit IS NULL, 0.0, op.open_profit), 2) AS open_profit,
+		ROUND(IF(cp.closed_profit IS NULL, 0.0, cp.closed_profit), 2) AS closed_profit
 FROM ib_volume AS v
 LEFT JOIN ib_open_profit AS op ON op.trading_account = v.trading_account
 LEFT JOIN ib_closed_profit AS cp ON cp.trading_account = v.trading_account;
@@ -137,9 +137,9 @@ GROUP BY cib.ib_id;
                               
 SELECT e.ib_id,
 		e.equity,
-		IF(d.deposits IS NULL, 0.00, d.deposits) AS deposits,
-		IF(w.withdrawals IS NULL, 0.00, w.withdrawals) AS withdrawals,
-		IF(c.commission IS NULL, 0.00, c.commission) AS commission
+		ROUND(IF(d.deposits IS NULL, 0.00, d.deposits), 2) AS deposits,
+		ROUND(IF(w.withdrawals IS NULL, 0.00, w.withdrawals), 2) AS withdrawals,
+		ROUND(IF(c.commission IS NULL, 0.00, c.commission), 2) AS commission
 FROM ib_equity AS e
 LEFT JOIN ib_commissions AS c ON e.ib_id = c.ib_id 
 LEFT JOIN ib_deposits AS d ON e.ib_id = d.ib_id
