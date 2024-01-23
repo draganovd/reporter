@@ -13,15 +13,17 @@ import (
 )
 
 func main() {
+
+	from := flag.String("f", "", "Start date of the report.")
+	to := flag.String("t", "", "End date of the report.")
 	envFile := flag.String("e", "dev.env", "Env file to be used for configs.")
+	flag.Parse()
+
 	godotenv.Load(*envFile)
 	ValidateEnvVariables()
 
 	// when IB report functionality is moved out of the main func:
 	// reportType := flag.String("r", "ib_report", "The type of the report to be generated.")
-
-	from := flag.String("f", "", "Start date of the report.")
-	to := flag.String("t", "", "End date of the report.")
 
 	// Datetime format:
 	//  '2016-01-01 00:00:00'
@@ -33,13 +35,25 @@ func main() {
 
 	fmt.Println("====================== MT4 Data =======================")
 
-	replicaMt4 := db.NewReplicaMySQL("replica_user", "&v*GF2Y&etmCWq5t", "localhost", "3336", "lqd")
+	replicaMt4 := db.NewReplicaMySQL(
+		os.Getenv("MT4_DB_USERNAME"),
+		os.Getenv("MT4_DB_PASSWORD"),
+		os.Getenv("MT4_DB_HOST"),
+		os.Getenv("MT4_DB_PORT"),
+		os.Getenv("MT4_DB_DATABSE_NAME"))
+
 	resMt4 := replicaMt4.GetReplicaDBData(*from, *to, db.MT4_QUERY)
 	//fmt.Println(resMt4)
 
 	fmt.Println("======================= Pamm Data ======================")
 
-	replicaPamm := db.NewReplicaMySQL("replica_user", "&v*GF2Y&etmCWq5t", "localhost", "3336", "lqd_pamm")
+	replicaPamm := db.NewReplicaMySQL(
+		os.Getenv("PAMM_DB_USERNAME"),
+		os.Getenv("PAMM_DB_PASSWORD"),
+		os.Getenv("PAMM_DB_HOST"),
+		os.Getenv("PAMM_DB_PORT"),
+		os.Getenv("PAMM_DB_DATABSE_NAME"))
+
 	resPamm := replicaPamm.GetReplicaDBData(*from, *to, db.PAMM_QUERY)
 	//fmt.Println(resPamm)
 
@@ -60,7 +74,12 @@ func main() {
 		}
 	}
 
-	lqd := db.NewLqdMySQL("investotest", "pass1234", "87.228.230.182", "3306", "lqdfx")
+	lqd := db.NewLqdMySQL(
+		os.Getenv("LQD_DB_USERNAME"),
+		os.Getenv("LQD_DB_PASSWORD"),
+		os.Getenv("LQD_DB_HOST"),
+		os.Getenv("LQD_DB_PORT"),
+		os.Getenv("LQD_DB_DATABSE_NAME"))
 
 	ibToTradingAccMap := lqd.GetAccountIBData(allAccounts)
 
@@ -112,14 +131,16 @@ func main() {
 		}
 
 		//fmt.Println("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions")
-		fmt.Printf("%d\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\n",
+		fmt.Printf("%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\n",
 			res.IBID, res.Equity, res.DepositsTotal,
 			res.WithdrawalsTotal, res.Volume,
 			res.OpenProfit, res.ClosedProfit, res.Commissions)
-		row := fmt.Sprintf("%d\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\t\t%f\n",
+
+		row := fmt.Sprintf("%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\n",
 			res.IBID, res.Equity, res.DepositsTotal,
 			res.WithdrawalsTotal, res.Volume,
 			res.OpenProfit, res.ClosedProfit, res.Commissions)
+
 		repFile.Write([]byte(row))
 	}
 
