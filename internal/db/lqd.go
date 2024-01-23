@@ -41,7 +41,6 @@ func (lqd *LqdMySQL) GetIBReportData(startDate, endDate string) map[int]LqdResul
 	paramQuery = strings.Replace(paramQuery, "<startDate>", startDate, 1)
 	paramQuery = strings.Replace(paramQuery, "<endDate>", endDate, 1)
 
-	fmt.Println(paramQuery)
 	// Cannot use Prepared statements for multiple statements SQL
 	// for some strange reason .... (-_-)
 	rows, err := lqd.db.Query(paramQuery)
