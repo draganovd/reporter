@@ -25,10 +25,11 @@ func NewReplicaMySQL(user, password, host, port, dbName string) *ReplicaMySQL {
 	if err != nil {
 		log.Fatal(fmt.Errorf("creating new MySQL object: %s", err))
 	}
-	err = db.Ping()
-	if err != nil {
+
+	if err := db.Ping(); err != nil {
 		log.Fatal(fmt.Errorf("db ping: %s", err))
 	}
+
 	return &ReplicaMySQL{
 		db: db,
 	}

@@ -14,12 +14,12 @@ import (
 
 func main() {
 
-	from := flag.String("f", "", "Start date of the report.")
-	to := flag.String("t", "", "End date of the report.")
-	envFile := flag.String("e", "dev.env", "Env file to be used for configs.")
+	from := flag.String("f", "", "Start date of the report in the format 2006-01-02 15:04:05.")
+	to := flag.String("t", "", "End date of the report in the format 2006-01-02 15:04:05.")
+	env := flag.String("e", "dev", "Env file to be used for configs.")
 	flag.Parse()
 
-	godotenv.Load(*envFile)
+	godotenv.Load(fmt.Sprintf("%s.env", *env))
 	ValidateEnvVariables()
 
 	// when IB report functionality is moved out of the main func:
@@ -28,10 +28,26 @@ func main() {
 	// Datetime format:
 	//  '2016-01-01 00:00:00'
 
+	// data for LQD ===> BETWEEN  '2017-01-01 00:00:00' AND '2017-03-01 00:00:00'
+
 	if *from == "" && *to == "" {
 		*to = time.Now().Format("2006-01-02 15:04:05")
 		*from = time.Now().Add(-1 * time.Hour * 24 * 30).Format("2006-01-02 15:04:05")
+	} else if *from == "" {
+		toTime, err := time.Parse(*to, "2006-01-02 15:04:05")
+		if err != nil {
+			log.Fatalf("parse *to time: %s", err)
+		}
+		*from = toTime.Add(-1 * time.Hour * 24 * 30).Format("2006-01-02 15:04:05")
+	} else if *to == "" {
+		fromTime, err := time.Parse(*from, "2006-01-02 15:04:05")
+		if err != nil {
+			log.Fatalf("parse *from time: %s", err)
+		}
+		*to = fromTime.Add(time.Hour * 24 * 30).Format("2006-01-02 15:04:05")
 	}
+
+	startTime := time.Now()
 
 	fmt.Println("====================== MT4 Data =======================")
 
@@ -73,29 +89,39 @@ func main() {
 			allAccounts = append(allAccounts, key)
 		}
 	}
+	var lqdDB *db.LqdMySQL
+	if *env == "prd" {
+		lqdDB = db.NewLqdMySQL_SSH_Tunnel(
+			os.Getenv("LQD_DB_USERNAME"),
+			os.Getenv("LQD_DB_PASSWORD"),
+			os.Getenv("LQD_DB_HOST"),
+			os.Getenv("LQD_DB_PORT"),
+			os.Getenv("LQD_DB_DATABSE_NAME"))
+	} else {
+		lqdDB = db.NewLqdMySQL(
+			os.Getenv("LQD_DB_USERNAME"),
+			os.Getenv("LQD_DB_PASSWORD"),
+			os.Getenv("LQD_DB_HOST"),
+			os.Getenv("LQD_DB_PORT"),
+			os.Getenv("LQD_DB_DATABSE_NAME"))
+	}
 
-	lqd := db.NewLqdMySQL(
-		os.Getenv("LQD_DB_USERNAME"),
-		os.Getenv("LQD_DB_PASSWORD"),
-		os.Getenv("LQD_DB_HOST"),
-		os.Getenv("LQD_DB_PORT"),
-		os.Getenv("LQD_DB_DATABSE_NAME"))
-
-	ibToTradingAccMap := lqd.GetAccountIBData(allAccounts)
+	ibToTradingAccMap := lqdDB.GetAccountIBData(allAccounts, os.Getenv("LQD_DB_DATABSE_NAME"))
 
 	fmt.Println("===================== Get IB Data =======================")
-	ibData := lqd.GetIBReportData(*from, *to)
+	ibData := lqdDB.GetIBReportData(*from, *to, os.Getenv("LQD_DB_DATABSE_NAME"))
 	//fmt.Println(ibData)
-	fmt.Println("====================== Generate report =======================")
+	fmt.Println("===================== Generate report =======================")
 
 	fileName := time.Now().Format("20060102150405")
-	repFile, err := os.Create(fmt.Sprintf("generated/%s.txt", fileName))
+
+	repFile, err := os.Create(fmt.Sprintf("generated/%s.%s.txt", fileName, *env))
 	if err != nil {
 		log.Fatalf("creating new file: %s", err)
 	}
 	defer repFile.Close()
 
-	fmt.Println("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions")
+	// fmt.Println("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions")
 
 	header := fmt.Sprintf("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions\n")
 	repFile.Write([]byte(header))
@@ -131,10 +157,10 @@ func main() {
 		}
 
 		//fmt.Println("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions")
-		fmt.Printf("%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\n",
-			res.IBID, res.Equity, res.DepositsTotal,
-			res.WithdrawalsTotal, res.Volume,
-			res.OpenProfit, res.ClosedProfit, res.Commissions)
+		// fmt.Printf("%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\n",
+		// 	res.IBID, res.Equity, res.DepositsTotal,
+		// 	res.WithdrawalsTotal, res.Volume,
+		// 	res.OpenProfit, res.ClosedProfit, res.Commissions)
 
 		row := fmt.Sprintf("%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\n",
 			res.IBID, res.Equity, res.DepositsTotal,
@@ -144,6 +170,9 @@ func main() {
 		repFile.Write([]byte(row))
 	}
 
+	duration := time.Since(startTime)
+	fmt.Printf("Report for time frame %s - %s\n", *from, *to)
+	fmt.Printf("Generation took %s duration.\n", duration)
 }
 
 type ReportRow struct {
