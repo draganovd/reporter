@@ -103,8 +103,8 @@ DROP TEMPORARY TABLE IF EXISTS ib_withdrawals;
 CREATE TEMPORARY TABLE ib_equity
 SELECT cib.ib_id as ib_id,
 	SUM(e.equity) as equity
-FROM lqdfx.client_trading_accounts_by_ib as cib
-LEFT JOIN lqdfx.lqdfx_equity_report as e ON e.fs_user_id = cib.fs_user_id
+FROM <db>.client_trading_accounts_by_ib as cib
+LEFT JOIN <db>.lqdfx_equity_report as e ON e.fs_user_id = cib.fs_user_id
 GROUP BY cib.ib_id;
 
 
