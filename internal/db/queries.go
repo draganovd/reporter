@@ -124,7 +124,7 @@ LEFT JOIN (SELECT p.fs_user_id AS user_id,
 				SUM(p.value) AS deposits
 			FROM <db>.lqdfx_payments AS p
 			WHERE p.status = 'approved' AND p.type = 'deposit' AND 
-				p.date BETWEEN '2017-01-01 00:00:00' AND '2017-03-01 00:00:00'
+				p.date BETWEEN @start AND @end
 			GROUP BY p.fs_user_id) AS d ON cib.fs_user_id = d.user_id
 GROUP BY cib.ib_id
 HAVING deposits IS NOT NULL;
