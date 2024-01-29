@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
-
 	"reporter/internal/db"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -73,8 +72,6 @@ func main() {
 	resPamm := replicaPamm.GetReplicaDBData(*from, *to, db.PAMM_QUERY)
 	//fmt.Println(resPamm)
 
-	fmt.Println("====================== Get all unique Trading Accounts =======================")
-
 	allAccounts := make([]int, 0)
 	alreadyAdded := make(map[int]struct{})
 	for key := range resMt4 {
@@ -89,6 +86,8 @@ func main() {
 			allAccounts = append(allAccounts, key)
 		}
 	}
+	fmt.Println("====================== Get all unique Trading Accounts =======================")
+
 	var lqdDB *db.LqdMySQL
 	if *env == "prd" {
 		lqdDB = db.NewLqdMySQL_SSH_Tunnel(
@@ -120,8 +119,6 @@ func main() {
 		log.Fatalf("creating new file: %s", err)
 	}
 	defer repFile.Close()
-
-	// fmt.Println("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions")
 
 	header := fmt.Sprintf("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions\n")
 	repFile.Write([]byte(header))
@@ -156,12 +153,6 @@ func main() {
 			Volume:       replicaData.Volume,
 		}
 
-		//fmt.Println("IB\t\tEquity\t\tDeposits\t\tWithdrawls\t\tVolume\t\tOpenProfit\t\tClosedProfit\t\tCommissions")
-		// fmt.Printf("%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\n",
-		// 	res.IBID, res.Equity, res.DepositsTotal,
-		// 	res.WithdrawalsTotal, res.Volume,
-		// 	res.OpenProfit, res.ClosedProfit, res.Commissions)
-
 		row := fmt.Sprintf("%d\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\t\t%.2f\n",
 			res.IBID, res.Equity, res.DepositsTotal,
 			res.WithdrawalsTotal, res.Volume,
@@ -171,7 +162,7 @@ func main() {
 	}
 
 	duration := time.Since(startTime)
-	fmt.Printf("Report for time frame %s - %s\n", *from, *to)
+	// fmt.Printf("Report for time frame %s - %s\n", *from, *to)
 	fmt.Printf("Generation took %s duration.\n", duration)
 }
 

@@ -103,8 +103,8 @@ DROP TEMPORARY TABLE IF EXISTS ib_withdrawals;
 CREATE TEMPORARY TABLE ib_equity
 SELECT cib.ib_id as ib_id,
 	SUM(e.equity) as equity
-FROM <db>.client_trading_accounts_by_ib as cib
-LEFT JOIN <db>.lqdfx_equity_report as e ON e. trading_account = cib.trading_account_id AND e.fs_user_id = cib.fs_user_id
+FROM lqdfx.client_trading_accounts_by_ib as cib
+LEFT JOIN lqdfx.lqdfx_equity_report as e ON e.fs_user_id = cib.fs_user_id
 GROUP BY cib.ib_id;
 
 
@@ -119,29 +119,29 @@ GROUP BY ib_id;
 CREATE TEMPORARY TABLE ib_deposits
 SELECT cib.ib_id AS ib_id,
 	SUM(d.deposits) AS deposits
-FROM  (SELECT p.trading_account AS trading_account,
+FROM <db>.client_trading_accounts_by_ib AS cib
+LEFT JOIN (SELECT p.fs_user_id AS user_id,
 				SUM(p.value) AS deposits
-		FROM <db>.lqdfx_payments AS p
-		WHERE p.status = 'approved' AND p.type = 'deposit' AND 
-				p.date BETWEEN @start AND @end
-		GROUP BY p.trading_account) as d 
-LEFT JOIN <db>.client_trading_accounts_by_ib AS cib ON cib.trading_account_id = d.trading_account
-WHERE cib.ib_id IS NOT NULL
-GROUP BY cib.ib_id;
+			FROM <db>.lqdfx_payments AS p
+			WHERE p.status = 'approved' AND p.type = 'deposit' AND 
+				p.date BETWEEN '2017-01-01 00:00:00' AND '2017-03-01 00:00:00'
+			GROUP BY p.fs_user_id) AS d ON cib.fs_user_id = d.user_id
+GROUP BY cib.ib_id
+HAVING deposits IS NOT NULL;
 
 
 CREATE TEMPORARY TABLE ib_withdrawals
 SELECT cib.ib_id AS ib_id,
-	SUM(d.deposits)	AS withdrawals
-FROM (SELECT p.trading_account AS trading_account,
-			SUM(p.value) AS deposits
-	  FROM <db>.lqdfx_payments AS p
-	  WHERE p.status = 'approved' AND p.type = 'withdrawal' AND 
-			p.date BETWEEN @start AND @end
-	  GROUP BY p.trading_account) as d 
-LEFT JOIN <db>.client_trading_accounts_by_ib AS cib ON cib.trading_account_id = d.trading_account
-WHERE cib.ib_id IS NOT NULL
-GROUP BY cib.ib_id;
+	SUM(d.withdrawals) AS withdrawals
+FROM <db>.client_trading_accounts_by_ib AS cib
+LEFT JOIN (SELECT p.fs_user_id AS user_id,
+				SUM(p.value) AS withdrawals
+			FROM <db>.lqdfx_payments AS p
+			WHERE p.status = 'approved' AND p.type = 'withdrawal' AND 
+				p.date BETWEEN @start AND @end
+			GROUP BY p.fs_user_id) AS d ON cib.fs_user_id = d.user_id
+GROUP BY cib.ib_id
+HAVING withdrawals IS NOT NULL;
           
                               
 SELECT e.ib_id,
